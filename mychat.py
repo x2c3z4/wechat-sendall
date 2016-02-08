@@ -7,30 +7,13 @@ from BeautifulSoup import BeautifulSoup
 import re, shutil, xml.dom.minidom, json
 import netrc
 import os.path, time
-
-LOGIN_URL = 'https://login.oracle.com/oam/server/sso/auth_cred_submit'
-WIFI_URL_JAPAC = 'https://gmp.oracle.com/captcha/files/airespace_pwd_apac.txt?_dc=1426063232433'
-WIFI_URL_AMERICAS = 'https://gmp.oracle.com/captcha/files/airespace_pwd.txt?_dc=1428891906138'
-WIFI_URL_EMEA = 'https://gmp.oracle.com/captcha/files/airespace_pwd_emea.txt?_dc=1428891953219'
+import random
 
 s = requests.Session()
 s.headers.update({'User-Agent':
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.94 Safari/537.36',
                   'Connection': 'keep-alive',
                   'Content-type': 'application/x-www-form-urlencoded'})
-
-
-# headers = {'X-Requested-With':'XMLHttpRequest'}
-def saveCookies():
-  with open(COOKIE_FILE, 'w') as f:
-    pickle.dump(requests.utils.dict_from_cookiejar(s.cookies), f)
-
-
-def loadCookies():
-  with open(COOKIE_FILE) as f:
-    cookies = requests.utils.cookiejar_from_dict(pickle.load(f))
-    s.cookies = cookies
-  print >> sys.stderr, '[+] load cookies!!!'
 
 
 def patch_send():
@@ -46,14 +29,6 @@ def patch_send():
 
   httplib.HTTPConnection.send = new_send
 
-# def patch_getresponse():
-#     old_getresponse= httplib.HTTPConnection.getresponse
-#     def new_getresponse( self, buffering=False):
-#         data = old_getresponse(self, buffering) #return is not necessary, but never hurts, in case the library is changed
-#         print data
-#         return data
-#     httplib.HTTPConnection.getresponse= new_getresponse
-# patch_getresponse()
 
 # patch_send()
 
@@ -128,7 +103,7 @@ def getQRImage():
          [[(sc.connect(('8.8.8.8', 80)), sc.getsockname()[0], sc.close())
            for sc in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]])
         if l][0][0]
-  print "[+] Open http://" + ip + "/qrcode.jpg"
+  print "[+] Please open http://" + ip + "/qrcode.jpg or open /var/www/html/qrcodejpg"
 
   time.sleep(1)
 
@@ -149,10 +124,10 @@ def waitForLogin():
   code = pm.group(1)
 
   if code == '201':  # 已扫描
-    print('[+] 成功扫描,请在手机上点击确认以登录')
+    print('[+] Scan success, please click confirm on your mobile phone')
     tip = 0
   elif code == '200':  # 已登录
-    print('[+] 正在登录...')
+    print('[+] Logging in ...')
     regx = r'window.redirect_uri="(\S+?)";'
     pm = re.search(regx, data)
     redirect_uri = pm.group(1) + "&fun=new&version=v2"
@@ -332,12 +307,20 @@ def findFriend(key, value):
       return friend
   return None
 
+def getRandomMsg():
+  lines = open('regards.txt').read().splitlines()
+  myline =random.choice(lines)
+  return myline
+
+def striphtml(data):
+    p = re.compile(r'<.*?>')
+    return p.sub('', data)
 
 def main():
   if not getUUID():
     print "[-] UUID get fail"
     return
-  print "[+] get QR Image..."
+  print "[+] Getting QR Image..."
   getQRImage()
   while waitForLogin() != '200':
     pass
@@ -353,21 +336,24 @@ def main():
 
   webwxgetcontact()
 
-  import HTMLParser
-  h = HTMLParser.HTMLParser()
-
   for f in ContactList:
-    # f = findFriend("RemarkPYQuanPin", "chengbo")
-    # print f
-    name = h.unescape(f['RemarkName'].encode('utf-8'))
+    name = striphtml(f['RemarkName'].encode('utf-8'))
     if len(name) == 0:
-      name = h.unescape(f['NickName'].encode('utf-8'))
+      name = striphtml(f['NickName'].encode('utf-8'))
 
-    if f['UserName'].find('@@') != -1:
-      webwxsendmsg(My, content="skip " + content)
+    # content="嗨, %s 新年快乐 %s" % (name, "[拥抱]")
+    content="嗨, %s, %s %s" % (name, getRandomMsg(), "[拥抱]")
+    '''
+    = -1 : 群聊
+    = 0 : 公众号/服务号
+    '''
+    if f['UserName'].find('@@') != -1 or f['VerifyFlag'] & 8 != 0:
+      content = "skip " + name
+      print "[-] " + content
+      webwxsendmsg(My, content=content)
       continue
 
-    content="祝%s 新年快乐%s" % (name, "[拥抱]")
+    print "[+] sending to " + name + " ..."
     webwxsendmsg(My, content=content)
     # 记得先注释调这行，发给自己通过了在打开~~~~
     # webwxsendmsg(f, content=content)
