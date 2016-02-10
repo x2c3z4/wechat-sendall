@@ -26,7 +26,7 @@ real_send = False
 
 uuid = ''
 redirect_uri = ''
-
+base_uri = ''
 skey = ''
 wxsid = ''
 wxuin = ''
@@ -92,7 +92,7 @@ def getQRImage():
 
 
 def waitForLogin():
-  global redirect_uri
+  global redirect_uri, base_uri
   url = "https://login.weixin.qq.com/cgi-bin/mmwebwx-bin/login?loginicon=true&uuid=%s&tip=0&r=-1746241605&_=%s" % (
       uuid, int(time.time()))
 
@@ -114,8 +114,7 @@ def waitForLogin():
     regx = r'window.redirect_uri="(\S+?)";'
     pm = re.search(regx, data)
     redirect_uri = pm.group(1) + "&fun=new&version=v2"
-    # base_uri = redirect_uri[:redirect_uri.rfind('/')]
-
+    base_uri = redirect_uri[:redirect_uri.rfind('/')]
     # # push_uri与base_uri对应关系(排名分先后)(就是这么奇葩..)
     # services = [
     #     ('wx2.qq.com', 'webpush2.weixin.qq.com'),
@@ -183,7 +182,7 @@ def responseState(func, BaseResponse):
 def webwxinit():
   global My, SyncKey
 
-  url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxinit?r=-1746916482&lang=zh_CN&pass_ticket=" + pass_ticket
+  url = base_uri + "/webwxinit?r=-1746916482&lang=zh_CN&pass_ticket=" + pass_ticket
   payload = {'BaseRequest': BaseRequest}
   headers = {'ContentType': 'application/json; charset=UTF-8'}
   r = s.post(url, json=payload, headers=headers)
@@ -199,7 +198,7 @@ def webwxinit():
 
 def webwxsendmsg(friend, content):
   clientMsgId = str(int(time.time()))
-  url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxsendmsg?lang=zh_CN&pass_ticket=" + pass_ticket
+  url = base_uri + "/webwxsendmsg?lang=zh_CN&pass_ticket=" + pass_ticket
   Msg = {
       'Type': '1',
       'Content': content,
@@ -223,7 +222,7 @@ def webwxsendmsg(friend, content):
   return -1
 
 def webwxsync():
-  url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxsync?sid=" + wxsid + "&skey=" + skey
+  url = base_uri + "/webwxsync?sid=" + wxsid + "&skey=" + skey
   payload = {'BaseRequest': BaseRequest, 'SyncKey': SyncKey, 'rr' : int(time.time())}
   headers = {'ContentType': 'application/json; charset=UTF-8'}
   data = json.dumps(payload, ensure_ascii=False)
@@ -257,7 +256,7 @@ def parseRecvMsgs(msgs):
 
 def webwxgetcontact():
   global ContactList
-  url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetcontact?r=" + str(int(
+  url = base_uri + "/webwxgetcontact?r=" + str(int(
       time.time()))
   r = s.post(url, json={})
   # debugReq(r)
@@ -273,7 +272,7 @@ def getChatroomList():
     if user['UserName'].find('@@') != -1:  # 群聊
       chat_list.append({"UserName":user['UserName'], "ChatRoomId": ""})
 
-  url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxbatchgetcontact?type=ex&r=%d&lang=zh_CN&pass_ticket=%s"% (time.time(), pass_ticket)
+  url = base_uri + "/webwxbatchgetcontact?type=ex&r=%d&lang=zh_CN&pass_ticket=%s"% (time.time(), pass_ticket)
   payload = {
       'BaseRequest': BaseRequest,
       'List': chat_list,
