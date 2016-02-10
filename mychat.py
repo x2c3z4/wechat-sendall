@@ -8,31 +8,13 @@ import re, shutil, xml.dom.minidom, json
 import netrc
 import os.path, time
 import random
+from optparse import OptionParser
 
 s = requests.Session()
 s.headers.update({'User-Agent':
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.94 Safari/537.36',
                   'Connection': 'keep-alive',
                   'Content-type': 'application/x-www-form-urlencoded'})
-
-
-def patch_send():
-  old_send = httplib.HTTPConnection.send
-
-  def new_send(self, data):
-    print >> sys.stderr, '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-    print >> sys.stderr, data
-    print >> sys.stderr, '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
-    return old_send(
-        self, data
-    )  #return is not necessary, but never hurts, in case the library is changed
-
-  httplib.HTTPConnection.send = new_send
-
-
-# patch_send()
-
-
 def debugReq(r):
   pp = pprint.PrettyPrinter(indent=4)
   pp.pprint(r.status_code)
@@ -40,6 +22,7 @@ def debugReq(r):
   # print >>sys.stderr, r.text
   print >> sys.stderr, s.cookies.get_dict()
 
+real_send = False
 
 uuid = ''
 redirect_uri = ''
@@ -103,7 +86,7 @@ def getQRImage():
          [[(sc.connect(('8.8.8.8', 80)), sc.getsockname()[0], sc.close())
            for sc in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]])
         if l][0][0]
-  print "[+] Please open http://" + ip + "/qrcode.jpg or open /var/www/html/qrcodejpg"
+  print "[+] Please open http://" + ip + "/qrcode.jpg or open " + path
 
   time.sleep(1)
 
@@ -233,6 +216,11 @@ def webwxsendmsg(friend, content):
   r = s.post(url, data = data, headers=headers)
   # debugReq(r)
   # print r.text
+  resp = json.loads(r.text)
+  if 'BaseResponse' in resp:
+    if 'Ret' in resp['BaseResponse']:
+      return int(resp['BaseResponse']['Ret'])
+  return -1
 
 def webwxsync():
   url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxsync?sid=" + wxsid + "&skey=" + skey
@@ -317,6 +305,14 @@ def striphtml(data):
     return p.sub('', data)
 
 def main():
+  global real_send
+  parser = OptionParser(usage='%prog [options]',
+    description='send custom message to your friend on wechat, default dry run')
+  parser.add_option('-s', '--sendall',action='store_true', help='send message to your friend, please double check')
+  (options, args) = parser.parse_args()
+  if options.sendall:
+    real_send = options.sendall
+
   if not getUUID():
     print "[-] UUID get fail"
     return
@@ -348,47 +344,26 @@ def main():
     = 0 : 公众号/服务号
     '''
     if f['UserName'].find('@@') != -1 or f['VerifyFlag'] & 8 != 0:
-      content = "skip " + name
-      print "[-] " + content
-      webwxsendmsg(My, content=content)
+      # content = "skip " + name
+      # print "[-] " + content
+      # webwxsendmsg(My, content=content)
       continue
 
     print "[+] sending to " + name + " ..."
-    webwxsendmsg(My, content=content)
-    # 记得先注释调这行，发给自己通过了在打开~~~~
-    # webwxsendmsg(f, content=content)
+    if webwxsendmsg(My, content=content) != 0:
+      print "[!]\tSend to yourself fail, please check your account."
+    else:
+      print "[*]\tSend to yourself success."
+
+
+    if real_send:
+      # 发给朋友，请检查好喔
+      if webwxsendmsg(f, content=content) != 0:
+        print "[!]\tSend to " + name + " fail, please check your account."
+      else:
+        print "[*]\tSend to " + name + " success."
+
     time.sleep(1)
-
-  # webwxsendmsg(f, content)
-
-  # webwxsendmsg(findFriend("PYQuanPin", "fengli"), content="你好")
-  # getChatroomList()
-  # nickname = u"阿凹"
-  # to_group = findFriend("PYQuanPin", "aao")["UserName"]
-  # print "[+] To group: " + to_group
-  # username = ""
-  # for user in ChatContactList:
-  #   if user["UserName"] == to_group:
-  #     for u in user["MemberList"]:
-  #       if u["NickName"] == nickname:
-  #         username = u["UserName"].encode('unicode_escape')
-  #         print "[+] Found! username in group is " + username
-  #         break
-  # webwxsendmsg(findFriend("PYQuanPin", "fengli"), content="@@xxxx 你好")
-
-
-  # for i in range(1, 200000):
-  #   resp = webwxsync()
-  #   if resp["AddMsgCount"] > 0:
-  #     print "-----------Received " + str(resp["AddMsgCount"]) + " msg---------------------"
-  #     for msg in resp["AddMsgList"]:
-  #       msg['Content'] = h.unescape(msg['Content'])
-  #       print msg['Content']
-  #       print msg
-  #     parseRecvMsgs(resp["AddMsgList"])
-  #     content="%s 你好" % ("[拥抱]",)
-  #     webwxsendmsg(findFriend("PYQuanPin", "aao"), content)
-  #   time.sleep(1)
 
 if __name__ == "__main__":
   main()
