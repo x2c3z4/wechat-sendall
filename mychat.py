@@ -10,6 +10,10 @@ import os.path, time
 import random
 from optparse import OptionParser
 
+from SimpleHTTPServer import SimpleHTTPRequestHandler
+from BaseHTTPServer import HTTPServer
+import threading
+
 s = requests.Session()
 s.headers.update({'User-Agent':
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.94 Safari/537.36',
@@ -23,6 +27,7 @@ def debugReq(r):
   print >> sys.stderr, s.cookies.get_dict()
 
 real_send = False
+http_port = 5678
 
 uuid = ''
 redirect_uri = ''
@@ -70,7 +75,7 @@ def getUUID():
 
 
 def getQRImage():
-  path = "/var/www/html/qrcode.jpg"
+  path = os.path.join(os.getcwd(), "qrcode.jpg")
   url = "https://login.weixin.qq.com/qrcode/" + uuid
   r = s.get(url, stream=True)
   # debugReq(r)
@@ -86,7 +91,7 @@ def getQRImage():
          [[(sc.connect(('8.8.8.8', 80)), sc.getsockname()[0], sc.close())
            for sc in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]])
         if l][0][0]
-  print "[+] Please open http://" + ip + "/qrcode.jpg or open " + path
+  print "[+] Please open http://" + ip + ":" + str(http_port) + "/qrcode.jpg or open " + path
 
   time.sleep(1)
 
@@ -304,13 +309,27 @@ def striphtml(data):
     return p.sub('', data)
 
 def main():
-  global real_send
+  global real_send, http_port
   parser = OptionParser(usage='%prog [options]',
     description='send custom message to your friend on wechat, default dry run')
   parser.add_option('-s', '--sendall',action='store_true', help='send message to your friend, please double check')
+  parser.add_option('-p', '--port',type='int', help='http server port listen')
+
   (options, args) = parser.parse_args()
   if options.sendall:
     real_send = options.sendall
+  if options.port:
+    http_port = options.port
+
+  server = HTTPServer(('0.0.0.0', http_port), SimpleHTTPRequestHandler)
+  thread = threading.Thread(target = server.serve_forever)
+  thread.daemon = True
+  print "[+] Starting Http Server"
+  try:
+      thread.start()
+  except KeyboardInterrupt:
+      server.shutdown()
+      sys.exit(0)
 
   if not getUUID():
     print "[-] UUID get fail"

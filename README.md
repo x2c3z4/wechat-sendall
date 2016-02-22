@@ -10,15 +10,16 @@
 
 ```
 $ pip install -r requirements.txt
-$ mkdir -p /var/www/html
 $ python mychat.py -h
 Usage: mychat.py [options]
 
 send custom message to your friend on wechat, default dry run
 
 Options:
-  -h, --help     show this help message and exit
-  -s, --sendall  send message to your friend, please double check
+  -h, --help            show this help message and exit
+  -s, --sendall         send message to your friend, please double check
+  -p PORT, --port=PORT  http server port listen
+
 
 $ python mychat.py
 [+] Getting QR Image...
@@ -30,10 +31,7 @@ $ python mychat.py
 [*] Send to yourself success.
 
 ```
-默认将登录二维码放在/var/www/html，没有apache可以直接进入目录打开二维码，扫描登录。
-```
-$ open /var/www/html/qrcode.jpg
-```
+默认将登录二维码放在当前工作目录，点开URL，扫描登录。或者直接打开文件。
 
 *注意1*
 ```
