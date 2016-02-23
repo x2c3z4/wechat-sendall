@@ -10,8 +10,8 @@
 
 ```
 $ pip install -r requirements.txt
-$ python mychat.py -h
-Usage: mychat.py [options]
+$ python wechat-sendall.py -h
+Usage: wechat-sendall.py [options]
 
 send custom message to your friend on wechat, default dry run
 
@@ -20,8 +20,8 @@ Options:
   -s, --sendall         send message to your friend, please double check
   -p PORT, --port=PORT  http server port listen
 
-
-$ python mychat.py
+$ cd wechat-sendall
+$ python wechat-sendall.py
 [+] Getting QR Image...
 [+] Please open http://192.168.1.117/qrcode.jpg or open /var/www/html/qrcode.jpg
 [+] Scan success, please click confirm on your mobile phone
@@ -35,7 +35,7 @@ $ python mychat.py
 
 *注意1*
 ```
-$ python mychat.py -s
+$ python wechat-sendall.py -s
 ```
 默认只发给自己，打开了'-s'就给好友发祝福了，同时也给自己发一遍。
 确认发给自己没问题了，再发出去噢。。。。要不闹笑话了。

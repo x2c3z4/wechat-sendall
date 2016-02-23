@@ -1,3 +1,6 @@
 *.py[cod]
 contacts.txt
 qrcode.jpg
+MANIFEST
+dist/*
+build/

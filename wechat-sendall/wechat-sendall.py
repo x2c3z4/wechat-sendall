@@ -267,8 +267,8 @@ def webwxgetcontact():
   # debugReq(r)
   content = r.text.encode('unicode_escape').decode('string_escape')
   ContactList = json.loads(content)['MemberList']
-  with open('contacts.txt', 'w') as f:
-    f.write(content)
+  #with open('contacts.txt', 'w') as f:
+  #  f.write(content)
 
 def getChatroomList():
   global ChatContactList
