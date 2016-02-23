@@ -3,7 +3,7 @@ import requests, requests.utils, pickle
 import httplib
 import sys
 import pprint
-from BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup
 import re, shutil, xml.dom.minidom, json
 import netrc
 import os.path, time
@@ -367,19 +367,19 @@ def main():
       # webwxsendmsg(My, content=content)
       continue
 
-    print "[+] sending to " + name + " ..."
+    print "[+] Prepare sending to " + name + " ..."
     if webwxsendmsg(My, content=content) != 0:
-      print "[!]\tSend to yourself fail, please check your account."
+      print "[!]\tSent to yourself fail, please check your account."
     else:
-      print "[*]\tSend to yourself success."
+      print "[*]\tSent to yourself success."
 
 
     if real_send:
       # 发给朋友，请检查好喔
       if webwxsendmsg(f, content=content) != 0:
-        print "[!]\tSend to " + name + " fail, please check your account."
+        print "[!]\tSent to " + name + " fail, please check your account."
       else:
-        print "[*]\tSend to " + name + " success."
+        print "[*]\tSent to " + name + " success."
 
     time.sleep(1)
 

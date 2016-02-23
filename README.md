@@ -55,7 +55,7 @@ content="嗨, %s, %s %s" % (name, getRandomMsg(), "[拥抱]")
 ```
 
 # 测试
-目前只在mac上测试，Linux应该没有问题，欢迎修改。
+支持Windows, Linux, MAC.
 
 # 存在的问题
 1. 部分帐号存在不能给自己发送的问题，一般直接登录web 微信也存在这个问题，不知道什么原因。
